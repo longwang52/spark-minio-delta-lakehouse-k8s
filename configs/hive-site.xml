@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration>
+
+    <!-- ================================================================ -->
+    <!-- Metastore warehouse directory (S3A / MinIO)                      -->
+    <!-- ================================================================ -->
+    <property>
+        <name>hive.metastore.warehouse.dir</name>
+        <value>s3a://warehouse/</value>
+    </property>
+
+    <!-- Metastore Thrift URI - used by Spark and HiveServer2 clients -->
+    <property>
+        <name>hive.metastore.uris</name>
+        <value>thrift://hive-metastore.lakehouse.svc.cluster.local:9083</value>
+    </property>
+
+    <!-- ================================================================ -->
+    <!-- PostgreSQL metastore backend                                      -->
+    <!-- ================================================================ -->
+    <property>
+        <name>javax.jdo.option.ConnectionURL</name>
+        <value>jdbc:postgresql://postgresql.lakehouse.svc.cluster.local:5432/metastore_db</value>
+    </property>
+    <property>
+        <name>javax.jdo.option.ConnectionDriverName</name>
+        <value>org.postgresql.Driver</value>
+    </property>
+    <property>
+        <name>javax.jdo.option.ConnectionUserName</name>
+        <value>admin</value>
+    </property>
+    <property>
+        <name>javax.jdo.option.ConnectionPassword</name>
+        <value>admin</value>
+    </property>
+
+    <!-- ================================================================ -->
+    <!-- DataNucleus / schema auto-creation                               -->
+    <!-- ================================================================ -->
+    <property>
+        <name>hive.metastore.schema.verification</name>
+        <value>false</value>
+    </property>
+    <property>
+        <name>datanucleus.autoCreateSchema</name>
+        <value>true</value>
+    </property>
+    <property>
+        <name>datanucleus.schema.autoCreateAll</name>
+        <value>true</value>
+    </property>
+    <property>
+        <name>datanucleus.fixedDatastore</name>
+        <value>false</value>
+    </property>
+    <property>
+        <name>datanucleus.autoStartMechanismMode</name>
+        <value>ignored</value>
+    </property>
+
+    <!-- ================================================================ -->
+    <!-- S3A / MinIO configuration                                        -->
+    <!-- MinIO is deployed in the 'minio' namespace                       -->
+    <!-- ================================================================ -->
+    <property>
+        <name>fs.s3a.endpoint</name>
+        <value>http://minio.minio:9000</value>
+    </property>
+    <property>
+        <name>fs.s3a.access.key</name>
+        <value>admin</value>
+    </property>
+    <property>
+        <name>fs.s3a.secret.key</name>
+        <value>admin12345</value>
+    </property>
+    <property>
+        <name>fs.s3a.path.style.access</name>
+        <value>true</value>
+    </property>
+    <property>
+        <name>fs.s3a.impl</name>
+        <value>org.apache.hadoop.fs.s3a.S3AFileSystem</value>
+    </property>
+    <property>
+        <name>fs.AbstractFileSystem.s3a.impl</name>
+        <value>org.apache.hadoop.fs.s3a.S3A</value>
+    </property>
+    <property>
+        <name>fs.s3a.connection.ssl.enabled</name>
+        <value>false</value>
+    </property>
+
+    <!-- ================================================================ -->
+    <!-- HiveServer2 settings                                             -->
+    <!-- ================================================================ -->
+    <property>
+        <name>hive.server2.enable.doAs</name>
+        <value>false</value>
+    </property>
+    <property>
+        <name>hive.server2.authentication</name>
+        <value>NONE</value>
+    </property>
+    <property>
+        <name>hive.server2.thrift.port</name>
+        <value>10000</value>
+    </property>
+    <property>
+        <name>hive.server2.thrift.bind.host</name>
+        <value>0.0.0.0</value>
+    </property>
+    <property>
+        <name>hive.server2.webui.port</name>
+        <value>10002</value>
+    </property>
+    <property>
+        <name>hive.server2.webui.host</name>
+        <value>0.0.0.0</value>
+    </property>
+
+</configuration>

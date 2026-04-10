@@ -1,0 +1,19 @@
+---
+# Hive Metastore ClusterIP Service
+# Used internally by Spark and HiveServer2 via thrift://hive-metastore.lakehouse.svc.cluster.local:9083
+apiVersion: v1
+kind: Service
+metadata:
+  name: hive-metastore
+  namespace: lakehouse
+  labels:
+    app: hive-metastore
+    app.kubernetes.io/part-of: lakehouse
+spec:
+  selector:
+    app: hive-metastore
+  ports:
+    - name: thrift
+      port: 9083
+      targetPort: 9083
+  type: ClusterIP

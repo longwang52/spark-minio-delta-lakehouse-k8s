@@ -1,0 +1,81 @@
+---
+# Apache Kyuubi Deployment
+# Image: kyuubi:1.8.0 (built from docker-images/kyuubi/Dockerfile)
+# Kyuubi acts as a unified gateway for Spark SQL, connecting to the Spark standalone cluster
+# Depends on: spark-master, hive-metastore
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kyuubi
+  namespace: lakehouse
+  labels:
+    app: kyuubi
+    app.kubernetes.io/part-of: lakehouse
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kyuubi
+  template:
+    metadata:
+      labels:
+        app: kyuubi
+    spec:
+      initContainers:
+        # Wait for Spark Master to be ready
+        - name: wait-for-spark-master
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z spark-master.lakehouse.svc.cluster.local 7077; do
+                echo "Waiting for Spark Master..."; sleep 5;
+              done
+        # Wait for Hive Metastore to be ready
+        - name: wait-for-hive-metastore
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z hive-metastore.lakehouse.svc.cluster.local 9083; do
+                echo "Waiting for Hive Metastore..."; sleep 5;
+              done
+      containers:
+        - name: kyuubi
+          image: kyuubi:1.8.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 10009
+              name: thrift
+            - containerPort: 10099
+              name: rest
+            - containerPort: 4040
+              name: spark-ui
+          env:
+            - name: KYUUBI_HOME
+              value: /opt/kyuubi
+            - name: SPARK_HOME
+              value: /opt/bitnami/spark
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "2000m"
+              memory: "4Gi"
+          readinessProbe:
+            tcpSocket:
+              port: 10009
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            tcpSocket:
+              port: 10009
+            initialDelaySeconds: 90
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6

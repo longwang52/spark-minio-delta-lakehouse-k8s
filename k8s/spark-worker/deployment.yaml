@@ -1,0 +1,82 @@
+---
+# Spark Worker Deployment
+# Image: spark-worker:3.4.1 (built from docker-images/spark-worker/Dockerfile)
+# 2 replicas - one per worker node (spread via pod anti-affinity)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spark-worker
+  namespace: lakehouse
+  labels:
+    app: spark-worker
+    app.kubernetes.io/part-of: lakehouse
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: spark-worker
+  template:
+    metadata:
+      labels:
+        app: spark-worker
+    spec:
+      # Spread workers across different nodes
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - spark-worker
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: spark-worker
+          image: spark-worker:3.4.1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8081
+              name: webui
+          env:
+            - name: SPARK_MODE
+              value: worker
+            - name: SPARK_MASTER_URL
+              value: spark://spark-master.lakehouse.svc.cluster.local:7077
+            - name: SPARK_WORKER_MEMORY
+              value: "2G"
+            - name: SPARK_WORKER_CORES
+              value: "2"
+            - name: SPARK_RPC_AUTHENTICATION_ENABLED
+              value: "no"
+            - name: SPARK_RPC_ENCRYPTION_ENABLED
+              value: "no"
+            - name: SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED
+              value: "no"
+            - name: SPARK_SSL_ENABLED
+              value: "no"
+          resources:
+            requests:
+              cpu: "1000m"
+              memory: "2Gi"
+            limits:
+              cpu: "4000m"
+              memory: "4Gi"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8081
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8081
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6

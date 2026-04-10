@@ -1,0 +1,20 @@
+---
+# Spark History Server Service
+# NodePort 30180 provides external access to the History Server Web UI
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-history
+  namespace: lakehouse
+  labels:
+    app: spark-history
+    app.kubernetes.io/part-of: lakehouse
+spec:
+  selector:
+    app: spark-history
+  ports:
+    - name: webui
+      port: 18080
+      targetPort: 18080
+      nodePort: 30180
+  type: NodePort

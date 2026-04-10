@@ -1,0 +1,30 @@
+---
+# Kyuubi Service
+# - Thrift binary (10009) - JDBC/ODBC clients (e.g. beeline, DBeaver)
+# - REST API (10099)     - REST-based clients
+# - NodePort for external access
+apiVersion: v1
+kind: Service
+metadata:
+  name: kyuubi
+  namespace: lakehouse
+  labels:
+    app: kyuubi
+    app.kubernetes.io/part-of: lakehouse
+spec:
+  selector:
+    app: kyuubi
+  ports:
+    - name: thrift
+      port: 10009
+      targetPort: 10009
+      nodePort: 30009
+    - name: rest
+      port: 10099
+      targetPort: 10099
+      nodePort: 30099
+    - name: spark-ui
+      port: 4040
+      targetPort: 4040
+      nodePort: 30040
+  type: NodePort

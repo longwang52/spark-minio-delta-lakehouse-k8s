@@ -1,0 +1,20 @@
+---
+# Spark Worker Service (ClusterIP)
+# Worker UI accessible via NodePort 30081
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-worker
+  namespace: lakehouse
+  labels:
+    app: spark-worker
+    app.kubernetes.io/part-of: lakehouse
+spec:
+  selector:
+    app: spark-worker
+  ports:
+    - name: webui
+      port: 8081
+      targetPort: 8081
+      nodePort: 30081
+  type: NodePort

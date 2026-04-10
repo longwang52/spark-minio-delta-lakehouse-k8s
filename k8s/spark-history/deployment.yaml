@@ -1,0 +1,63 @@
+---
+# Spark History Server Deployment
+# Reads completed application logs from MinIO bucket: sparkhistory
+# Uses spark-master image (same JARs and configs already embedded)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spark-history
+  namespace: lakehouse
+  labels:
+    app: spark-history
+    app.kubernetes.io/part-of: lakehouse
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spark-history
+  template:
+    metadata:
+      labels:
+        app: spark-history
+    spec:
+      containers:
+        - name: spark-history
+          image: spark-master:3.4.1
+          imagePullPolicy: IfNotPresent
+          command:
+            - /opt/bitnami/spark/sbin/start-history-server.sh
+          ports:
+            - containerPort: 18080
+              name: webui
+          env:
+            - name: SPARK_HISTORY_OPTS
+              value: >-
+                -Dspark.history.fs.logDirectory=s3a://sparkhistory/
+                -Dspark.hadoop.fs.s3a.endpoint=http://minio.minio:9000
+                -Dspark.hadoop.fs.s3a.access.key=admin
+                -Dspark.hadoop.fs.s3a.secret.key=admin12345
+                -Dspark.hadoop.fs.s3a.path.style.access=true
+                -Dspark.hadoop.fs.s3a.connection.ssl.enabled=false
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 18080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 18080
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6

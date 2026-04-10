@@ -1,0 +1,58 @@
+---
+# Spark Master ClusterIP Service
+# Used for internal spark:// communication (workers connect on port 7077)
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-master
+  namespace: lakehouse
+  labels:
+    app: spark-master
+    app.kubernetes.io/part-of: lakehouse
+spec:
+  selector:
+    app: spark-master
+  ports:
+    - name: spark
+      port: 7077
+      targetPort: 7077
+  type: ClusterIP
+---
+# Spark Master Web UI NodePort Service
+# Allows external access to the Spark Master Web UI (NodePort 30080)
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-master-ui
+  namespace: lakehouse
+  labels:
+    app: spark-master
+    app.kubernetes.io/part-of: lakehouse
+spec:
+  selector:
+    app: spark-master
+  ports:
+    - name: webui
+      port: 8080
+      targetPort: 8080
+      nodePort: 30080
+  type: NodePort
+---
+# Headless service for stable DNS resolution of Spark master
+# Used by workers to register: spark://spark-master.lakehouse.svc.cluster.local:7077
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-master-headless
+  namespace: lakehouse
+  labels:
+    app: spark-master
+    app.kubernetes.io/part-of: lakehouse
+spec:
+  selector:
+    app: spark-master
+  clusterIP: None
+  ports:
+    - name: spark
+      port: 7077
+      targetPort: 7077

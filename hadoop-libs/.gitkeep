@@ -1,0 +1,6 @@
+# Place the following JAR files in this directory before building Docker images:
+#   - hadoop-aws-3.1.0.jar
+#   - aws-java-sdk-bundle-1.11.271.jar
+#
+# These JARs are required for S3A (MinIO) connectivity.
+# They will be COPY'd into the container images during `docker build`.
