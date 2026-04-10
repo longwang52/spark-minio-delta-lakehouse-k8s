@@ -1,0 +1,11 @@
+---
+# Dedicated namespace for the Delta Lakehouse stack
+# All components (PostgreSQL, Hive, Spark, Kyuubi) are deployed here.
+# MinIO lives in the 'minio' namespace and is referenced via
+# cross-namespace DNS: minio.minio:9000
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: lakehouse
+  labels:
+    app.kubernetes.io/part-of: lakehouse
