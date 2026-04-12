@@ -1,0 +1,93 @@
+---
+# ============================================================
+# ConfigMap: spark-config
+# 包含 spark-defaults.conf 配置
+# 挂载到 spark-master、spark-worker 和 kyuubi 容器
+# ============================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spark-config
+  namespace: lakehouse
+  labels:
+    app.kubernetes.io/part-of: lakehouse
+    app.kubernetes.io/component: spark
+data:
+  spark-defaults.conf: |
+    # ============================================================
+    # Spark Defaults Configuration
+    # - Delta Lake: 使用本地 JAR 包 (PVC 挂载)
+    # - MinIO S3: minio.minio.svc.cluster.local:9000
+    # - Spark History: 日志写入 MinIO sparkhistory bucket
+    # ============================================================
+
+    # Spark 集群 Master 地址（K8s Service DNS）
+    spark.master                          spark://spark-master.lakehouse.svc.cluster.local:7077
+
+    # Delta Lake SQL 扩展
+    spark.sql.extensions                  io.delta.sql.DeltaSparkSessionExtension
+
+    # Delta Lake Catalog
+    spark.sql.catalog.spark_catalog       org.apache.spark.sql.delta.catalog.DeltaCatalog
+
+    # 本地 JAR 包路径（PVC 挂载至 /opt/hadoop-libs）
+    spark.jars                            /opt/hadoop-libs/spark/delta-core_2.12-2.4.0.jar,\
+                                          /opt/hadoop-libs/spark/delta-storage-2.4.0.jar,\
+                                          /opt/hadoop-libs/spark/hadoop-aws-3.3.6.jar,\
+                                          /opt/hadoop-libs/spark/aws-java-sdk-bundle-1.11.271.jar,\
+                                          /opt/hadoop-libs/kyuubi/kyuubi-spark-connector-hive_2.12-1.8.0.jar,\
+                                          /opt/hadoop-libs/kyuubi/kyuubi-extension-spark-3-4_2.12-1.8.0.jar
+
+    # MinIO 端点（K8s 集群内 DNS）
+    spark.hadoop.fs.s3a.endpoint          http://minio.minio.svc.cluster.local:9000
+
+    # MinIO Access Key
+    spark.hadoop.fs.s3a.access.key        amdin
+
+    # MinIO Secret Key
+    spark.hadoop.fs.s3a.secret.key        amdin12345
+
+    # 路径样式访问（MinIO 必须为 true）
+    spark.hadoop.fs.s3a.path.style.access true
+
+    # S3A 文件系统实现
+    spark.hadoop.fs.s3a.impl              org.apache.hadoop.fs.s3a.S3AFileSystem
+
+    # 凭证提供者
+    spark.hadoop.fs.s3a.aws.credentials.provider  org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider
+
+    # 最大连接数
+    spark.hadoop.fs.s3a.connection.maximum  100
+
+    # 启用事件日志
+    spark.eventLog.enabled                true
+
+    # 事件日志写入 MinIO（远程存储）
+    spark.eventLog.dir                    s3a://sparkhistory/eventlogs
+
+    # History Server 日志目录
+    spark.history.fs.logDirectory         s3a://sparkhistory/eventlogs
+
+    # History Server 本地缓存路径
+    spark.history.store.path              /opt/spark/history-cache
+
+    # History Server 更新间隔
+    spark.history.fs.update.interval      10s
+
+    # Hive MetaStore URI
+    spark.hadoop.hive.metastore.uris      thrift://hive-metastore.lakehouse.svc.cluster.local:9083
+
+    # Warehouse 路径
+    spark.sql.warehouse.dir               s3a://warehouse/spark
+
+    # 序列化
+    spark.serializer                      org.apache.spark.serializer.KryoSerializer
+
+    # 心跳间隔
+    spark.executor.heartbeatInterval      10s
+
+    # 网络超时
+    spark.network.timeout                 120s
+
+    # 禁用动态资源分配
+    spark.dynamicAllocation.enabled       false

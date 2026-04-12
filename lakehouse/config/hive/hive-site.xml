@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<!--
+  ============================================================
+  Hive Site Configuration
+  - MetaStore 使用 MySQL (mysql.bigdata.svc.cluster.local:3306)
+  - Warehouse 数据存储在 MinIO S3 (minio.minio.svc.cluster.local:9000)
+  - 适用于 hive-metastore 和 hive-server2
+  ============================================================
+-->
+<configuration>
+
+  <!-- ==================== MetaStore 数据库连接 ==================== -->
+
+  <!-- MySQL JDBC 连接 URL，使用 K8s 完整 DNS 域名 -->
+  <property>
+    <name>javax.jdo.option.ConnectionURL</name>
+    <value>jdbc:mysql://mysql.bigdata.svc.cluster.local:3306/metastore?useSSL=false&amp;allowPublicKeyRetrieval=true&amp;characterEncoding=UTF-8</value>
+    <description>MySQL JDBC 连接字符串，连接 bigdata 命名空间中的 MySQL</description>
+  </property>
+
+  <!-- MySQL JDBC 驱动 -->
+  <property>
+    <name>javax.jdo.option.ConnectionDriverName</name>
+    <value>com.mysql.jdbc.Driver</value>
+    <description>MySQL JDBC 驱动类名</description>
+  </property>
+
+  <!-- MySQL 用户名 -->
+  <property>
+    <name>javax.jdo.option.ConnectionUserName</name>
+    <value>root</value>
+    <description>MySQL 连接用户名</description>
+  </property>
+
+  <!-- MySQL 密码 -->
+  <property>
+    <name>javax.jdo.option.ConnectionPassword</name>
+    <value>root</value>
+    <description>MySQL 连接密码</description>
+  </property>
+
+  <!-- ==================== MetaStore 服务配置 ==================== -->
+
+  <!-- MetaStore 服务地址，hive-server2 使用此地址连接 -->
+  <property>
+    <name>hive.metastore.uris</name>
+    <value>thrift://hive-metastore.lakehouse.svc.cluster.local:9083</value>
+    <description>Thrift MetaStore 服务地址（K8s Service DNS）</description>
+  </property>
+
+  <!-- 首次启动时自动创建 schema -->
+  <property>
+    <name>hive.metastore.schema.verification</name>
+    <value>false</value>
+    <description>关闭 schema 版本校验，避免版本不匹配导致启动失败</description>
+  </property>
+
+  <!-- 启动时自动初始化 schema -->
+  <property>
+    <name>datanucleus.schema.autoCreateAll</name>
+    <value>true</value>
+    <description>自动创建数据库 schema（首次启动时）</description>
+  </property>
+
+  <!-- ==================== Warehouse 存储路径 ==================== -->
+
+  <!-- 默认 warehouse 路径（指向 MinIO S3 路径） -->
+  <property>
+    <name>hive.metastore.warehouse.dir</name>
+    <value>s3a://warehouse/hive</value>
+    <description>Hive 表数据默认存储路径（MinIO warehouse bucket）</description>
+  </property>
+
+  <!-- ==================== S3/MinIO 访问配置 ==================== -->
+
+  <!-- MinIO Endpoint（K8s 集群内 DNS） -->
+  <property>
+    <name>fs.s3a.endpoint</name>
+    <value>http://minio.minio.svc.cluster.local:9000</value>
+    <description>MinIO S3 兼容服务地址（K8s DNS）</description>
+  </property>
+
+  <!-- MinIO Access Key -->
+  <property>
+    <name>fs.s3a.access.key</name>
+    <value>amdin</value>
+    <description>MinIO Access Key（注意：原始凭证为 amdin）</description>
+  </property>
+
+  <!-- MinIO Secret Key -->
+  <property>
+    <name>fs.s3a.secret.key</name>
+    <value>amdin12345</value>
+    <description>MinIO Secret Key</description>
+  </property>
+
+  <!-- 关闭 S3 路径样式（使用路径样式访问 MinIO） -->
+  <property>
+    <name>fs.s3a.path.style.access</name>
+    <value>true</value>
+    <description>MinIO 需要路径样式访问，不使用 virtual-hosted-style</description>
+  </property>
+
+  <!-- S3A 实现类 -->
+  <property>
+    <name>fs.s3a.impl</name>
+    <value>org.apache.hadoop.fs.s3a.S3AFileSystem</value>
+    <description>Hadoop S3A 文件系统实现</description>
+  </property>
+
+  <!-- S3A 认证方式：使用固定凭证 -->
+  <property>
+    <name>fs.s3a.aws.credentials.provider</name>
+    <value>org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider</value>
+    <description>使用简单凭证提供者（Access Key / Secret Key）</description>
+  </property>
+
+  <!-- S3A 连接数量 -->
+  <property>
+    <name>fs.s3a.connection.maximum</name>
+    <value>100</value>
+    <description>最大 S3A 连接数</description>
+  </property>
+
+  <!-- ==================== HiveServer2 配置 ==================== -->
+
+  <!-- HiveServer2 绑定主机 -->
+  <property>
+    <name>hive.server2.thrift.bind.host</name>
+    <value>0.0.0.0</value>
+    <description>HiveServer2 监听所有网络接口</description>
+  </property>
+
+  <!-- HiveServer2 Thrift 端口 -->
+  <property>
+    <name>hive.server2.thrift.port</name>
+    <value>10000</value>
+    <description>HiveServer2 Thrift 服务端口</description>
+  </property>
+
+  <!-- 启用 HiveServer2 Web UI -->
+  <property>
+    <name>hive.server2.webui.port</name>
+    <value>10002</value>
+    <description>HiveServer2 Web UI 端口</description>
+  </property>
+
+  <!-- 禁用 Kerberos 认证（使用 NONE 模式） -->
+  <property>
+    <name>hive.server2.authentication</name>
+    <value>NONE</value>
+    <description>不使用 Kerberos 认证</description>
+  </property>
+
+  <!-- ==================== 其他优化配置 ==================== -->
+
+  <!-- 禁用统计自动计算（避免性能开销） -->
+  <property>
+    <name>hive.stats.autogather</name>
+    <value>false</value>
+    <description>禁用自动统计信息收集</description>
+  </property>
+
+  <!-- MetaStore 事件监听器（兼容性） -->
+  <property>
+    <name>hive.metastore.event.db.notification.api.auth</name>
+    <value>false</value>
+    <description>禁用 MetaStore 事件 API 认证</description>
+  </property>
+
+</configuration>

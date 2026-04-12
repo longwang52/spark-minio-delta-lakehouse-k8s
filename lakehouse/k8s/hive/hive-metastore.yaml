@@ -1,0 +1,166 @@
+---
+# ============================================================
+# Service: hive-metastore (ClusterIP)
+# Hive MetaStore 仅供集群内部访问（Spark、HiveServer2 使用）
+# 端口: 9083 (Thrift)
+# ============================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: hive-metastore
+  namespace: lakehouse
+  labels:
+    app.kubernetes.io/name: hive-metastore
+    app.kubernetes.io/part-of: lakehouse
+    app.kubernetes.io/component: hive-metastore
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: hive-metastore
+  ports:
+    - name: thrift
+      port: 9083
+      targetPort: 9083
+      protocol: TCP
+
+---
+# ============================================================
+# Deployment: hive-metastore
+# 连接 MySQL (bigdata 命名空间) 存储元数据
+# 镜像: myharbor.com/bigdata/apache/hive:3.1.3
+# JAR 包从 PVC 挂载：/opt/hadoop-libs
+# 配置文件从 ConfigMap 挂载：/opt/hive/conf/hive-site.xml
+# ============================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hive-metastore
+  namespace: lakehouse
+  labels:
+    app.kubernetes.io/name: hive-metastore
+    app.kubernetes.io/part-of: lakehouse
+    app.kubernetes.io/component: hive-metastore
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: hive-metastore
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: hive-metastore
+        app.kubernetes.io/part-of: lakehouse
+        app.kubernetes.io/component: hive-metastore
+    spec:
+      # 确保在 MySQL 可用之后启动（通过 initContainer 检查）
+      initContainers:
+        - name: wait-for-mysql
+          image: busybox:1.35
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for MySQL at mysql.bigdata.svc.cluster.local:3306..."
+              until nc -z mysql.bigdata.svc.cluster.local 3306; do
+                echo "MySQL not ready, retrying in 5s..."
+                sleep 5
+              done
+              echo "MySQL is ready!"
+
+      containers:
+        - name: hive-metastore
+          image: myharbor.com/bigdata/apache/hive:3.1.3
+          imagePullPolicy: IfNotPresent
+
+          # 启动 MetaStore 服务
+          command:
+            - /bin/bash
+            - -c
+            - |
+              # 将 PVC 中的 MySQL JDBC JAR 复制到 Hive lib 目录
+              echo "Copying MySQL JDBC JAR..."
+              cp /opt/hadoop-libs/mysql/mysql-connector-java-*.jar /opt/hive/lib/ 2>/dev/null || true
+              # 将 Hadoop AWS JAR 复制到 Hive lib
+              cp /opt/hadoop-libs/hive/*.jar /opt/hive/lib/ 2>/dev/null || true
+
+              echo "Initializing or upgrading Hive schema..."
+              # 尝试初始化 schema（若已存在则忽略错误）
+              schematool -dbType mysql -initSchema --verbose 2>&1 || \
+              schematool -dbType mysql -upgradeSchema --verbose 2>&1 || true
+
+              echo "Starting Hive MetaStore..."
+              hive --service metastore
+
+          ports:
+            - name: thrift
+              containerPort: 9083
+              protocol: TCP
+
+          env:
+            # Hive home 目录
+            - name: HIVE_HOME
+              value: /opt/hive
+            # Hadoop 配置路径
+            - name: HADOOP_HOME
+              value: /opt/hadoop
+            # 禁用内存检查（容器环境）
+            - name: HADOOP_OPTS
+              value: "-Djava.net.preferIPv4Stack=true"
+            # Java heap size for MetaStore
+            - name: HADOOP_HEAPSIZE
+              value: "1024"
+
+          volumeMounts:
+            # hive-site.xml 配置文件（从 ConfigMap 挂载）
+            - name: hive-config
+              mountPath: /opt/hive/conf/hive-site.xml
+              subPath: hive-site.xml
+              readOnly: true
+            # JAR 包（从 PVC 挂载）
+            - name: hadoop-libs
+              mountPath: /opt/hadoop-libs
+              readOnly: true
+            # Hive Warehouse（本地缓存，可选）
+            - name: hive-warehouse
+              mountPath: /opt/hive/warehouse
+
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "1"
+              memory: "2Gi"
+
+          livenessProbe:
+            tcpSocket:
+              port: 9083
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            failureThreshold: 5
+
+          readinessProbe:
+            tcpSocket:
+              port: 9083
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 10
+
+      volumes:
+        # hive-site.xml ConfigMap
+        - name: hive-config
+          configMap:
+            name: hive-config
+
+        # JAR 包 PVC
+        - name: hadoop-libs
+          persistentVolumeClaim:
+            claimName: hadoop-libs-pvc
+            readOnly: true
+
+        # Hive warehouse PVC
+        - name: hive-warehouse
+          persistentVolumeClaim:
+            claimName: hive-warehouse-pvc
+
+      restartPolicy: Always

@@ -1,0 +1,64 @@
+---
+# ============================================================
+# PersistentVolumeClaim: hadoop-libs-pvc
+# 用于存放所有依赖 JAR 包（hadoop-aws, delta-core, mysql-jdbc 等）
+# 通过 NFS 动态供应，支持跨 Pod 只读共享（ReadOnlyMany）
+# ============================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: hadoop-libs-pvc
+  namespace: lakehouse
+  labels:
+    app.kubernetes.io/part-of: lakehouse
+    app.kubernetes.io/component: shared-libs
+spec:
+  accessModes:
+    - ReadOnlyMany          # 多个 Pod 同时只读挂载
+  storageClassName: nfs-client  # 使用集群默认 NFS 存储类
+  resources:
+    requests:
+      storage: 2Gi
+
+---
+# ============================================================
+# PersistentVolumeClaim: spark-history-cache-pvc
+# Spark History Server 本地缓存目录，单节点读写
+# 远程日志存入 MinIO sparkhistory bucket
+# ============================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: spark-history-cache-pvc
+  namespace: lakehouse
+  labels:
+    app.kubernetes.io/part-of: lakehouse
+    app.kubernetes.io/component: spark-history
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: nfs-client
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+# ============================================================
+# PersistentVolumeClaim: hive-metastore-warehouse-pvc
+# Hive Metastore 本地 warehouse 目录（非 MinIO 路径时的备用）
+# ============================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: hive-warehouse-pvc
+  namespace: lakehouse
+  labels:
+    app.kubernetes.io/part-of: lakehouse
+    app.kubernetes.io/component: hive-metastore
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-client
+  resources:
+    requests:
+      storage: 10Gi

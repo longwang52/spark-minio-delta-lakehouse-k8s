@@ -1,0 +1,190 @@
+---
+# ============================================================
+# Service: spark-master (NodePort)
+# 暴露 Spark Master Web UI 和 RPC 端口
+# NodePort: 30080 (Web UI), 30077 (RPC)
+# History Server NodePort: 30180
+# 通过 VIP 192.168.226.120 访问 Web UI
+# ============================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-master
+  namespace: lakehouse
+  labels:
+    app.kubernetes.io/name: spark-master
+    app.kubernetes.io/part-of: lakehouse
+    app.kubernetes.io/component: spark
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: spark-master
+  ports:
+    - name: web-ui
+      port: 8080
+      targetPort: 8080
+      nodePort: 30080    # Spark Web UI: 192.168.226.120:30080
+      protocol: TCP
+    - name: rpc
+      port: 7077
+      targetPort: 7077
+      nodePort: 30077    # Spark RPC（Worker 注册端口）
+      protocol: TCP
+    - name: history-server
+      port: 18080
+      targetPort: 18080
+      nodePort: 30180    # Spark History Server: 192.168.226.120:30180
+      protocol: TCP
+
+---
+# ============================================================
+# StatefulSet: spark-master
+# 使用 StatefulSet 保证 Pod 名称稳定（spark-master-0）
+# 结合 Headless Service 实现稳定 DNS 解析
+# 同时运行 Spark History Server
+# 镜像: myharbor.com/bigdata/bitnami/spark:3.4.1
+# ============================================================
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: spark-master
+  namespace: lakehouse
+  labels:
+    app.kubernetes.io/name: spark-master
+    app.kubernetes.io/part-of: lakehouse
+    app.kubernetes.io/component: spark
+spec:
+  replicas: 1
+  serviceName: spark-headless   # 关联 Headless Service（稳定 DNS）
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: spark-master
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: spark-master
+        app.kubernetes.io/part-of: lakehouse
+        app.kubernetes.io/component: spark
+    spec:
+      # 设置 hostname 为 spark-master，避免使用 StatefulSet 自动生成的 spark-master-0
+      hostname: spark-master
+      subdomain: spark-headless
+
+      containers:
+        - name: spark-master
+          image: myharbor.com/bigdata/bitnami/spark:3.4.1
+          imagePullPolicy: IfNotPresent
+
+          command:
+            - /bin/bash
+            - -c
+            - |
+              echo "Starting Spark Master..."
+              # 复制 JAR 包到 Spark jars 目录（如果目标不存在）
+              mkdir -p /opt/bitnami/spark/jars
+              cp /opt/hadoop-libs/spark/*.jar /opt/bitnami/spark/jars/ 2>/dev/null || true
+              cp /opt/hadoop-libs/kyuubi/*.jar /opt/bitnami/spark/jars/ 2>/dev/null || true
+
+              # 后台启动 History Server
+              echo "Starting Spark History Server in background..."
+              /opt/bitnami/spark/sbin/start-history-server.sh &
+
+              # 前台启动 Spark Master
+              exec /opt/bitnami/spark/sbin/start-master.sh --host spark-master
+
+          ports:
+            - name: web-ui
+              containerPort: 8080
+              protocol: TCP
+            - name: rpc
+              containerPort: 7077
+              protocol: TCP
+            - name: history-server
+              containerPort: 18080
+              protocol: TCP
+
+          env:
+            # Spark Master 绑定主机（使用稳定 hostname）
+            - name: SPARK_MASTER_HOST
+              value: spark-master
+            # Spark Master Web UI 端口
+            - name: SPARK_MASTER_WEBUI_PORT
+              value: "8080"
+            # Spark Master RPC 端口
+            - name: SPARK_MASTER_PORT
+              value: "7077"
+            # 公网 DNS（用于 Worker 回连，使用 K8s Service DNS）
+            - name: SPARK_PUBLIC_DNS
+              value: spark-master.lakehouse.svc.cluster.local
+            # 本地 hostname（防止 Worker 发送不可解析的 Pod 名）
+            - name: SPARK_LOCAL_HOSTNAME
+              value: spark-master.lakehouse.svc.cluster.local
+            # History Server 日志目录（MinIO）
+            - name: SPARK_HISTORY_OPTS
+              value: >-
+                -Dspark.history.fs.logDirectory=s3a://sparkhistory/eventlogs
+                -Dspark.history.store.path=/opt/spark/history-cache
+                -Dspark.hadoop.fs.s3a.endpoint=http://minio.minio.svc.cluster.local:9000
+                -Dspark.hadoop.fs.s3a.access.key=amdin
+                -Dspark.hadoop.fs.s3a.secret.key=amdin12345
+                -Dspark.hadoop.fs.s3a.path.style.access=true
+                -Dspark.hadoop.fs.s3a.impl=org.apache.hadoop.fs.s3a.S3AFileSystem
+                -Dspark.hadoop.fs.s3a.aws.credentials.provider=org.apache.hadoop.fs.s3a.SimpleAWSCredentialsProvider
+            # Spark 模式（master）
+            - name: SPARK_MODE
+              value: master
+
+          volumeMounts:
+            # spark-defaults.conf 配置文件
+            - name: spark-config
+              mountPath: /opt/bitnami/spark/conf/spark-defaults.conf
+              subPath: spark-defaults.conf
+              readOnly: true
+            # JAR 包 PVC
+            - name: hadoop-libs
+              mountPath: /opt/hadoop-libs
+              readOnly: true
+            # History Server 本地缓存
+            - name: history-cache
+              mountPath: /opt/spark/history-cache
+
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "2"
+              memory: "2Gi"
+
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 5
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            failureThreshold: 10
+
+      volumes:
+        # spark-defaults.conf ConfigMap
+        - name: spark-config
+          configMap:
+            name: spark-config
+        # JAR 包 PVC
+        - name: hadoop-libs
+          persistentVolumeClaim:
+            claimName: hadoop-libs-pvc
+            readOnly: true
+        # History Server 缓存 PVC
+        - name: history-cache
+          persistentVolumeClaim:
+            claimName: spark-history-cache-pvc
+
+      restartPolicy: Always
