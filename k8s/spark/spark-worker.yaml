@@ -1,0 +1,100 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spark-worker
+  namespace: lakehouse
+  labels:
+    app: spark
+    component: worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: spark
+      component: worker
+  template:
+    metadata:
+      labels:
+        app: spark
+        component: worker
+    spec:
+      initContainers:
+        - name: wait-for-master
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z spark-master 7077; do
+                echo "Waiting for Spark Master..."
+                sleep 5
+              done
+              echo "Spark Master is ready!"
+      containers:
+        - name: spark-worker
+          image: apache/spark:3.5.1
+          command:
+            - /bin/sh
+            - -c
+            - /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077
+          ports:
+            - name: webui
+              containerPort: 8081
+              protocol: TCP
+          env:
+            - name: SPARK_WORKER_WEBUI_PORT
+              value: "8081"
+            - name: SPARK_WORKER_CORES
+              value: "2"
+            - name: SPARK_WORKER_MEMORY
+              value: "2g"
+          volumeMounts:
+            - name: spark-config
+              mountPath: /opt/spark/conf/spark-defaults.conf
+              subPath: spark-defaults.conf
+            - name: spark-config
+              mountPath: /opt/spark/conf/hive-site.xml
+              subPath: hive-site.xml
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8081
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8081
+            initialDelaySeconds: 30
+            periodSeconds: 30
+      volumes:
+        - name: spark-config
+          configMap:
+            name: spark-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spark-worker
+  namespace: lakehouse
+  labels:
+    app: spark
+    component: worker
+spec:
+  selector:
+    app: spark
+    component: worker
+  ports:
+    - name: webui
+      port: 8081
+      targetPort: 8081
+      protocol: TCP
+  type: ClusterIP

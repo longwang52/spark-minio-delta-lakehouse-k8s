@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+  <!-- ===================== Hive Metastore 连接 ===================== -->
+  <property>
+    <name>hive.metastore.uris</name>
+    <value>thrift://hive-metastore:9083</value>
+    <description>Spark 连接 Hive Metastore 的 Thrift URI</description>
+  </property>
+
+  <!-- ===================== 数据仓库路径 ===================== -->
+  <property>
+    <name>hive.metastore.warehouse.dir</name>
+    <value>s3a://warehouse/</value>
+  </property>
+
+  <!-- ===================== S3A / MinIO 连接配置 ===================== -->
+  <property>
+    <name>fs.s3a.endpoint</name>
+    <value>http://minio:9000</value>
+    <description>MinIO 服务地址</description>
+  </property>
+
+  <property>
+    <name>fs.s3a.access.key</name>
+    <value>minioadmin</value>
+    <description>⚠️ 生产环境请修改</description>
+  </property>
+
+  <property>
+    <name>fs.s3a.secret.key</name>
+    <value>minioadmin</value>
+    <description>⚠️ 生产环境请修改</description>
+  </property>
+
+  <property>
+    <name>fs.s3a.path.style.access</name>
+    <value>true</value>
+  </property>
+
+  <property>
+    <name>fs.s3a.impl</name>
+    <value>org.apache.hadoop.fs.s3a.S3AFileSystem</value>
+  </property>
+
+  <property>
+    <name>fs.s3a.connection.ssl.enabled</name>
+    <value>false</value>
+  </property>
+
+</configuration>

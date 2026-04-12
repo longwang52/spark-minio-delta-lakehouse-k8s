@@ -1,0 +1,80 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kyuubi
+  namespace: lakehouse
+  labels:
+    app: kyuubi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kyuubi
+  template:
+    metadata:
+      labels:
+        app: kyuubi
+    spec:
+      serviceAccountName: spark
+      initContainers:
+        - name: wait-for-hive-metastore
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              until nc -z hive-metastore 9083; do
+                echo "Waiting for Hive Metastore..."
+                sleep 5
+              done
+              echo "Hive Metastore is ready!"
+      containers:
+        - name: kyuubi
+          image: apache/kyuubi:1.8.1-spark-3.5
+          ports:
+            - name: thrift
+              containerPort: 10009
+              protocol: TCP
+          volumeMounts:
+            - name: kyuubi-config
+              mountPath: /opt/kyuubi/conf/kyuubi-defaults.conf
+              subPath: kyuubi-defaults.conf
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+          readinessProbe:
+            tcpSocket:
+              port: 10009
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 10009
+            initialDelaySeconds: 60
+            periodSeconds: 30
+      volumes:
+        - name: kyuubi-config
+          configMap:
+            name: kyuubi-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kyuubi
+  namespace: lakehouse
+  labels:
+    app: kyuubi
+spec:
+  selector:
+    app: kyuubi
+  ports:
+    - name: thrift
+      port: 10009
+      targetPort: 10009
+      protocol: TCP
+  type: ClusterIP

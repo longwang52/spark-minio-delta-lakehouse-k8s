@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kyuubi-config
+  namespace: lakehouse
+  labels:
+    app: kyuubi
+data:
+  kyuubi-defaults.conf: |
+    kyuubi.frontend.thrift.binary.bind.host       0.0.0.0
+    kyuubi.frontend.thrift.binary.bind.port       10009
+    kyuubi.engine.type                            SPARK_SQL
+    kyuubi.engine.share.level                     SERVER
+    kyuubi.session.engine.initialize.timeout      PT3M
+    spark.master                                  k8s://https://kubernetes.default.svc:443
+    spark.submit.deployMode                       cluster
+    spark.kubernetes.container.image              apache/spark:3.5.1
+    spark.kubernetes.namespace                    lakehouse
+    spark.kubernetes.authenticate.driver.serviceAccountName  spark
+    spark.sql.extensions                          io.delta.sql.DeltaSparkSessionExtension
+    spark.sql.catalog.spark_catalog               org.apache.spark.sql.delta.catalog.DeltaCatalog
+    spark.sql.hive.metastore.uris                 thrift://hive-metastore:9083
+    spark.sql.warehouse.dir                       s3a://warehouse/
+    spark.hadoop.hive.metastore.uris              thrift://hive-metastore:9083
+    spark.hadoop.fs.s3a.endpoint                  http://minio:9000
+    spark.hadoop.fs.s3a.access.key                minioadmin
+    spark.hadoop.fs.s3a.secret.key                minioadmin
+    spark.hadoop.fs.s3a.path.style.access         true
+    spark.hadoop.fs.s3a.impl                      org.apache.hadoop.fs.s3a.S3AFileSystem
+    spark.hadoop.fs.s3a.connection.ssl.enabled    false
+    spark.driver.memory                           1g
+    spark.executor.memory                         2g
+    spark.executor.cores                          2
+    spark.executor.instances                      2
+    spark.eventLog.enabled                        true
+    spark.eventLog.dir                            s3a://spark-logs/

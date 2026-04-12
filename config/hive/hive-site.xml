@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+  <!-- ===================== MetaStore 数据库连接 ===================== -->
+  <property>
+    <name>javax.jdo.option.ConnectionDriverName</name>
+    <value>org.postgresql.Driver</value>
+  </property>
+
+  <property>
+    <name>javax.jdo.option.ConnectionURL</name>
+    <value>jdbc:postgresql://postgres:5432/metastore</value>
+    <description>PostgreSQL 连接 URL，请根据实际环境修改 host/port/dbname</description>
+  </property>
+
+  <property>
+    <name>javax.jdo.option.ConnectionUserName</name>
+    <value>hive</value>
+  </property>
+
+  <property>
+    <name>javax.jdo.option.ConnectionPassword</name>
+    <value>hive123</value>
+    <description>⚠️ 生产环境请修改此密码，建议使用 Kubernetes Secret 注入</description>
+  </property>
+
+  <!-- ===================== Hive Metastore Thrift 服务 ===================== -->
+  <property>
+    <name>hive.metastore.uris</name>
+    <value>thrift://hive-metastore:9083</value>
+  </property>
+
+  <property>
+    <name>hive.metastore.port</name>
+    <value>9083</value>
+  </property>
+
+  <!-- ===================== 数据仓库路径（MinIO/S3） ===================== -->
+  <property>
+    <name>hive.metastore.warehouse.dir</name>
+    <value>s3a://warehouse/</value>
+    <description>Delta Lake / Hive 表默认存储路径（MinIO bucket）</description>
+  </property>
+
+  <!-- ===================== S3A / MinIO 连接配置 ===================== -->
+  <property>
+    <name>fs.s3a.endpoint</name>
+    <value>http://minio:9000</value>
+    <description>MinIO 服务地址，格式：http://&lt;host&gt;:&lt;port&gt;</description>
+  </property>
+
+  <property>
+    <name>fs.s3a.access.key</name>
+    <value>minioadmin</value>
+    <description>⚠️ 生产环境请修改，建议使用 Kubernetes Secret 注入</description>
+  </property>
+
+  <property>
+    <name>fs.s3a.secret.key</name>
+    <value>minioadmin</value>
+    <description>⚠️ 生产环境请修改，建议使用 Kubernetes Secret 注入</description>
+  </property>
+
+  <property>
+    <name>fs.s3a.path.style.access</name>
+    <value>true</value>
+    <description>MinIO 需要路径风格访问</description>
+  </property>
+
+  <property>
+    <name>fs.s3a.impl</name>
+    <value>org.apache.hadoop.fs.s3a.S3AFileSystem</value>
+  </property>
+
+  <property>
+    <name>fs.s3a.connection.ssl.enabled</name>
+    <value>false</value>
+    <description>MinIO 本地部署通常不启用 SSL，生产环境建议开启</description>
+  </property>
+
+  <!-- ===================== Hive Server2 配置 ===================== -->
+  <property>
+    <name>hive.server2.thrift.port</name>
+    <value>10000</value>
+  </property>
+
+  <property>
+    <name>hive.server2.thrift.bind.host</name>
+    <value>0.0.0.0</value>
+  </property>
+
+  <!-- ===================== 其他优化配置 ===================== -->
+  <property>
+    <name>datanucleus.autoCreateSchema</name>
+    <value>true</value>
+    <description>首次启动时自动创建 schema</description>
+  </property>
+
+  <property>
+    <name>datanucleus.fixedDatastore</name>
+    <value>false</value>
+  </property>
+
+  <property>
+    <name>hive.metastore.schema.verification</name>
+    <value>false</value>
+  </property>
+
+</configuration>
