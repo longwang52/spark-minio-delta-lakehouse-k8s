@@ -1,6 +1,10 @@
 *.class
-*.jar
 *.log
 *.tmp
 .idea/
 *.iml
+
+# 排除 hadoop-libs 中实际的 JAR 包（应通过 PVC 挂载，不纳入版本控制）
+# 但保留 .gitkeep 文件（用于维护目录结构）
+lakehouse/hadoop-libs/**/*.jar
+!lakehouse/hadoop-libs/**/.gitkeep

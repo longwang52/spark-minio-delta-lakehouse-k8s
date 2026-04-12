@@ -1,0 +1,11 @@
+---
+# ============================================================
+# Namespace: lakehouse
+# 所有 Lakehouse 组件部署在此命名空间中
+# ============================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: lakehouse
+  labels:
+    app.kubernetes.io/part-of: lakehouse

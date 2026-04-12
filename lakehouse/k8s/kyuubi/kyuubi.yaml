@@ -1,0 +1,180 @@
+---
+# ============================================================
+# Service: kyuubi (NodePort)
+# 暴露 Kyuubi JDBC 端口供外部访问
+# NodePort: 30009 (Thrift Binary), 30099 (REST API)
+# 通过 VIP 192.168.226.120 访问
+# ============================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: kyuubi
+  namespace: lakehouse
+  labels:
+    app.kubernetes.io/name: kyuubi
+    app.kubernetes.io/part-of: lakehouse
+    app.kubernetes.io/component: kyuubi
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: kyuubi
+  ports:
+    - name: thrift-binary
+      port: 10009
+      targetPort: 10009
+      nodePort: 30009    # Kyuubi JDBC: 192.168.226.120:30009
+      protocol: TCP
+    - name: rest-api
+      port: 10099
+      targetPort: 10099
+      nodePort: 30099    # Kyuubi REST API: 192.168.226.120:30099
+      protocol: TCP
+
+---
+# ============================================================
+# Deployment: kyuubi
+# 连接 Spark Master，提供多租户 SQL Gateway
+# 镜像: myharbor.com/bigdata/apache/kyuubi:1.8.0-spark
+# ============================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kyuubi
+  namespace: lakehouse
+  labels:
+    app.kubernetes.io/name: kyuubi
+    app.kubernetes.io/part-of: lakehouse
+    app.kubernetes.io/component: kyuubi
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kyuubi
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kyuubi
+        app.kubernetes.io/part-of: lakehouse
+        app.kubernetes.io/component: kyuubi
+    spec:
+      # 等待 Spark Master 和 Hive MetaStore 就绪
+      initContainers:
+        - name: wait-for-spark-master
+          image: busybox:1.35
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for Spark Master..."
+              until nc -z spark-master.lakehouse.svc.cluster.local 7077; do
+                echo "Spark Master not ready, retrying in 5s..."
+                sleep 5
+              done
+              echo "Spark Master is ready!"
+        - name: wait-for-metastore
+          image: busybox:1.35
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for Hive MetaStore..."
+              until nc -z hive-metastore.lakehouse.svc.cluster.local 9083; do
+                echo "MetaStore not ready, retrying in 5s..."
+                sleep 5
+              done
+              echo "MetaStore is ready!"
+
+      containers:
+        - name: kyuubi
+          image: myharbor.com/bigdata/apache/kyuubi:1.8.0-spark
+          imagePullPolicy: IfNotPresent
+
+          command:
+            - /bin/bash
+            - -c
+            - |
+              echo "Setting up Kyuubi..."
+              mkdir -p /opt/kyuubi/logs/operation
+
+              echo "Starting Kyuubi Server..."
+              exec /opt/kyuubi/bin/kyuubi start --foreground
+
+          ports:
+            - name: thrift-binary
+              containerPort: 10009
+              protocol: TCP
+            - name: rest-api
+              containerPort: 10099
+              protocol: TCP
+
+          env:
+            # Kyuubi home
+            - name: KYUUBI_HOME
+              value: /opt/kyuubi
+            # Java 选项
+            - name: JAVA_OPTS
+              value: "-Djava.net.preferIPv4Stack=true"
+            # Spark home（用于 Kyuubi 内嵌 Spark）
+            - name: SPARK_HOME
+              value: /opt/spark
+
+          volumeMounts:
+            # kyuubi-defaults.conf 配置文件
+            - name: kyuubi-config
+              mountPath: /opt/kyuubi/conf/kyuubi-defaults.conf
+              subPath: kyuubi-defaults.conf
+              readOnly: true
+            # spark-defaults.conf（Kyuubi 启动 Spark 引擎时使用）
+            - name: spark-config
+              mountPath: /opt/spark/conf/spark-defaults.conf
+              subPath: spark-defaults.conf
+              readOnly: true
+            # JAR 包
+            - name: hadoop-libs
+              mountPath: /opt/hadoop-libs
+              readOnly: true
+            # Kyuubi 操作日志
+            - name: kyuubi-logs
+              mountPath: /opt/kyuubi/logs
+
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "2"
+              memory: "4Gi"
+
+          livenessProbe:
+            tcpSocket:
+              port: 10009
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            failureThreshold: 5
+
+          readinessProbe:
+            tcpSocket:
+              port: 10009
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 10
+
+      volumes:
+        # Kyuubi 配置 ConfigMap
+        - name: kyuubi-config
+          configMap:
+            name: kyuubi-config
+        # Spark 配置 ConfigMap
+        - name: spark-config
+          configMap:
+            name: spark-config
+        # JAR 包 PVC
+        - name: hadoop-libs
+          persistentVolumeClaim:
+            claimName: hadoop-libs-pvc
+            readOnly: true
+        # Kyuubi 日志（emptyDir，重启后清空）
+        - name: kyuubi-logs
+          emptyDir: {}
+
+      restartPolicy: Always
