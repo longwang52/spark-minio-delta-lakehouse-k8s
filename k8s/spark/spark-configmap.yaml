@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: spark-config
+  namespace: lakehouse
+  labels:
+    app: spark
+data:
+  spark-defaults.conf: |
+    spark.sql.extensions                          io.delta.sql.DeltaSparkSessionExtension
+    spark.sql.catalog.spark_catalog               org.apache.spark.sql.delta.catalog.DeltaCatalog
+    spark.sql.hive.metastore.uris                 thrift://hive-metastore:9083
+    spark.sql.warehouse.dir                       s3a://warehouse/
+    spark.hadoop.hive.metastore.uris              thrift://hive-metastore:9083
+    spark.hadoop.fs.s3a.endpoint                  http://minio:9000
+    spark.hadoop.fs.s3a.access.key                minioadmin
+    spark.hadoop.fs.s3a.secret.key                minioadmin
+    spark.hadoop.fs.s3a.path.style.access         true
+    spark.hadoop.fs.s3a.impl                      org.apache.hadoop.fs.s3a.S3AFileSystem
+    spark.hadoop.fs.s3a.connection.ssl.enabled    false
+    spark.hadoop.fs.s3a.fast.upload               true
+    spark.eventLog.enabled                        true
+    spark.eventLog.dir                            s3a://spark-logs/
+    spark.history.fs.logDirectory                 s3a://spark-logs/
+    spark.serializer                              org.apache.spark.serializer.KryoSerializer
+    spark.sql.shuffle.partitions                  200
+
+  hive-site.xml: |
+    <?xml version="1.0" encoding="UTF-8"?>
+    <configuration>
+      <property>
+        <name>hive.metastore.uris</name>
+        <value>thrift://hive-metastore:9083</value>
+      </property>
+      <property>
+        <name>hive.metastore.warehouse.dir</name>
+        <value>s3a://warehouse/</value>
+      </property>
+      <property>
+        <name>fs.s3a.endpoint</name>
+        <value>http://minio:9000</value>
+      </property>
+      <property>
+        <name>fs.s3a.access.key</name>
+        <value>minioadmin</value>
+      </property>
+      <property>
+        <name>fs.s3a.secret.key</name>
+        <value>minioadmin</value>
+      </property>
+      <property>
+        <name>fs.s3a.path.style.access</name>
+        <value>true</value>
+      </property>
+      <property>
+        <name>fs.s3a.impl</name>
+        <value>org.apache.hadoop.fs.s3a.S3AFileSystem</value>
+      </property>
+      <property>
+        <name>fs.s3a.connection.ssl.enabled</name>
+        <value>false</value>
+      </property>
+    </configuration>

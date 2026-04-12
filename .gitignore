@@ -1,6 +1,48 @@
+# Java 编译产物
 *.class
 *.jar
+
+# 日志文件
 *.log
 *.tmp
+
+# IDE 配置
 .idea/
 *.iml
+.vscode/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+
+# Hadoop / Spark JAR 包（需手动下载，不纳入版本控制）
+hadoop-libs/*.jar
+
+# 本地 Kubernetes 配置
+kubeconfig
+*.kubeconfig
+
+# 敏感配置（包含密码、密钥等，不纳入版本控制）
+*.secret.yaml
+*.secret.conf
+secrets/
+
+# 构建产物
+target/
+build/
+dist/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.eggs/
+.env
+.venv/
+env/
+venv/
+
