@@ -4,13 +4,13 @@
   <!-- ===================== MetaStore 数据库连接 ===================== -->
   <property>
     <name>javax.jdo.option.ConnectionDriverName</name>
-    <value>org.postgresql.Driver</value>
+    <value>com.mysql.cj.jdbc.Driver</value>
   </property>
 
   <property>
     <name>javax.jdo.option.ConnectionURL</name>
-    <value>jdbc:postgresql://postgres:5432/metastore</value>
-    <description>PostgreSQL 连接 URL，请根据实际环境修改 host/port/dbname</description>
+    <value>jdbc:mysql://mysql:3306/metastore?createDatabaseIfNotExist=true&amp;useSSL=false&amp;allowPublicKeyRetrieval=true</value>
+    <description>MySQL 连接 URL，请根据实际环境修改 host/port/dbname</description>
   </property>
 
   <property>

@@ -39,11 +39,11 @@
 
 ### 数据库连接
 
-Hive Metastore 使用 PostgreSQL 作为元数据存储。
+Hive Metastore 使用 MySQL 作为元数据存储。
 
 | 参数 | 说明 | 默认值 |
 |------|------|--------|
-| `javax.jdo.option.ConnectionURL` | 数据库连接 URL | `jdbc:postgresql://postgres:5432/metastore` |
+| `javax.jdo.option.ConnectionURL` | 数据库连接 URL | `jdbc:mysql://mysql:3306/metastore?createDatabaseIfNotExist=true&useSSL=false` |
 | `javax.jdo.option.ConnectionUserName` | 数据库用户名 | `hive` |
 | `javax.jdo.option.ConnectionPassword` | 数据库密码 | `hive123` |
 

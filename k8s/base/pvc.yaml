@@ -16,7 +16,7 @@ spec:
       storage: 10Gi
   storageClassName: standard
 ---
-# PVC：Hive Metastore 本地数据（可选，如果使用外部 PostgreSQL 可不用）
+# PVC：Hive Metastore 本地数据（可选，如果使用外部 MySQL 可不用）
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:

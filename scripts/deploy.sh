@@ -52,8 +52,15 @@ deploy_base() {
 }
 
 deploy_hive() {
+  info "部署 MySQL（Hive 元数据库）..."
+  kubectl apply -f "${ROOT_DIR}/k8s/hive/mysql.yaml"
+  info "等待 MySQL 就绪..."
+  kubectl rollout status deployment/mysql -n "${NAMESPACE}" --timeout=180s
+
   info "部署 Hive Metastore 和 HiveServer2..."
-  kubectl apply -f "${ROOT_DIR}/k8s/hive/"
+  kubectl apply -f "${ROOT_DIR}/k8s/hive/hive-configmap.yaml"
+  kubectl apply -f "${ROOT_DIR}/k8s/hive/hive-metastore.yaml"
+  kubectl apply -f "${ROOT_DIR}/k8s/hive/hive-server2.yaml"
   info "等待 Hive Metastore 就绪..."
   kubectl rollout status deployment/hive-metastore -n "${NAMESPACE}" --timeout=180s
 }
