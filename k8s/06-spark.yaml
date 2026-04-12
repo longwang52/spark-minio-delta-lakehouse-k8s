@@ -16,6 +16,9 @@ spec:
       containers:
         - name: spark-master
           image: bitnami/spark:3.4.1
+          envFrom:
+            - secretRef:
+                name: lakehouse-secrets
           command:
             - /opt/bitnami/spark/bin/spark-class
             - org.apache.spark.deploy.master.Master
@@ -100,6 +103,9 @@ spec:
       containers:
         - name: spark-worker
           image: bitnami/spark:3.4.1
+          envFrom:
+            - secretRef:
+                name: lakehouse-secrets
           env:
             - name: SPARK_MODE
               value: worker

@@ -20,6 +20,9 @@ spec:
       containers:
         - name: kyuubi
           image: apache/kyuubi:1.8.0-spark
+          envFrom:
+            - secretRef:
+                name: lakehouse-secrets
           ports:
             - containerPort: 10009
             - containerPort: 10099

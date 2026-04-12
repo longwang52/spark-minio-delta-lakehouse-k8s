@@ -21,6 +21,9 @@ spec:
         - name: hive-metastore
           image: apache/hive:3.1.3
           command: ["/bin/bash", "/entrypoint.sh"]
+          envFrom:
+            - secretRef:
+                name: lakehouse-secrets
           env:
             - name: SERVICE_NAME
               value: metastore
@@ -90,6 +93,9 @@ spec:
         - name: hive-server
           image: apache/hive:3.1.3
           command: ["/bin/bash", "/entrypoint.sh"]
+          envFrom:
+            - secretRef:
+                name: lakehouse-secrets
           env:
             - name: SERVICE_NAME
               value: hiveserver2
