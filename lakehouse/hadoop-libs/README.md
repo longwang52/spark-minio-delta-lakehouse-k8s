@@ -88,7 +88,7 @@ kubectl run jar-uploader --image=busybox:1.35 \
 kubectl wait pod/jar-uploader -n lakehouse --for=condition=Ready --timeout=60s
 
 # 3. 上传 JAR 包
-kubectl cp ./hadoop-libs/ lakehouse/jar-uploader:/opt/
+kubectl cp ./hadoop-libs lakehouse/jar-uploader:/opt/
 
 # 4. 验证
 kubectl exec -n lakehouse jar-uploader -- ls -la /opt/hadoop-libs/spark/

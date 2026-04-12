@@ -180,8 +180,8 @@ print_access_info() {
 #      --restart=Never -n lakehouse \
 #      --overrides='{"spec":{"volumes":[{"name":"libs","persistentVolumeClaim":{"claimName":"hadoop-libs-pvc"}}],"containers":[{"name":"jar-uploader","image":"busybox:1.35","command":["sleep","3600"],"volumeMounts":[{"name":"libs","mountPath":"/opt/hadoop-libs"}]}]}}' \
 #      -- sleep 3600
-# 3. 上传 JAR 包:
-#    kubectl cp ./hadoop-libs/ lakehouse/jar-uploader:/opt/
+# 3. 上传 JAR 包（注意：不加尾部斜杠，将整个 hadoop-libs 目录复制到 /opt/hadoop-libs/）:
+#    kubectl cp ./hadoop-libs lakehouse/jar-uploader:/opt/
 # 4. 删除临时 Pod:
 #    kubectl delete pod jar-uploader -n lakehouse
 # ============================================================

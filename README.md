@@ -124,7 +124,7 @@ kubectl run jar-uploader --image=busybox:1.35 --restart=Never -n lakehouse \
 kubectl wait pod/jar-uploader -n lakehouse --for=condition=Ready --timeout=60s
 
 # 上传 JAR 包
-kubectl cp ./lakehouse/hadoop-libs/ lakehouse/jar-uploader:/opt/
+kubectl cp ./lakehouse/hadoop-libs lakehouse/jar-uploader:/opt/
 
 # 清理
 kubectl delete pod jar-uploader -n lakehouse

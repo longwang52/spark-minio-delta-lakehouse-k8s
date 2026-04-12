@@ -85,7 +85,7 @@
   <property>
     <name>fs.s3a.access.key</name>
     <value>amdin</value>
-    <description>MinIO Access Key（注意：原始凭证为 amdin）</description>
+    <description>MinIO Access Key（凭证 'amdin' 是 MinIO 部署时设置的实际用户名，非拼写错误）</description>
   </property>
 
   <!-- MinIO Secret Key -->
