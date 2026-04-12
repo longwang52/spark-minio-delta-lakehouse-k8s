@@ -11,7 +11,7 @@ def main():
         .getOrCreate()
 
     input_path = f"s3a://{source_bucket}/test-data/people-100.csv"
-    delta_path = f"s3a://{source_bucket}/delta/wba/tables/"
+    delta_base_path = f"s3a://{source_bucket}/delta/wba/tables/"
 
     spark.sql("DROP SCHEMA IF EXISTS wba CASCADE")
 
@@ -23,7 +23,7 @@ def main():
     df.show()
 
     df.write.format("delta").option("delta.columnMapping.mode", "name")\
-        .option("path", f'{delta_path}/test_table')\
+        .option("path", f'{delta_base_path}/test_table')\
         .saveAsTable("wba.test_table")
 
     dt = DeltaTable.forName(spark, "wba.test_table")

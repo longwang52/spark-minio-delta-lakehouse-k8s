@@ -95,4 +95,3 @@ spec:
                 sleep 3
               done
               /usr/bin/mc mb --ignore-existing myminio/wba
-              /usr/bin/mc anonymous set public myminio/wba
