@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - 00-namespace.yaml
+  - 01-secrets-configmaps.yaml
+  - 02-storage.yaml
+  - 03-minio.yaml
+  - 04-postgres.yaml
+  - 05-hive.yaml
+  - 06-spark.yaml
+  - 07-kyuubi.yaml
